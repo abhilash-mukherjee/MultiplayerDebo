@@ -1,14 +1,16 @@
 ﻿using UnityEngine;
+using Photon.Pun;
+
 
 namespace PhotonDemoProject.UI
 {
     public class RoomUI : MonoBehaviour
     {
-        public delegate void RoomQuitHandler();
-        public static event RoomQuitHandler OnRoomQuit;
+
         public void QuitRoom()
         {
-            OnRoomQuit?.Invoke();
+            Debug.Log("Quit Room clicked");
+            PhotonNetworking.NetworkHelper.Instance.LeaveRoom();
         }
     }
 }

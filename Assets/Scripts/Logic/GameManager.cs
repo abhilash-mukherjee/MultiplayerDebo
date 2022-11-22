@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using PhotonNetworking;
 
 
 
@@ -11,17 +12,37 @@ namespace PhotonDemoProject.GameLogic
         #region Monobehaviour Callbacks
         private void OnEnable()
         {
-            PhotonNetworking.RoomManager.OnRoomLeft += RoomLeft;
+            RoomManager.OnClientLeftRoom += RoomLeft;
+            RoomManager.OnRemotePlayerLeftRoom += LoadArena;
+            RoomManager.OnRemotePlayerEnteredRoom += LoadArena;
         }
         private void OnDisable()
         {
             
-            PhotonNetworking.RoomManager.OnRoomLeft -= RoomLeft;
+            RoomManager.OnClientLeftRoom -= RoomLeft;
+            RoomManager.OnRemotePlayerLeftRoom -= LoadArena;
+            RoomManager.OnRemotePlayerEnteredRoom -= LoadArena;
         }
         #endregion
 
         #region Private Methods
 
+        #region Private Methods
+
+
+        void LoadArena()
+        {
+            if (!NetworkHelper.Instance.IsMasterClient())
+            {
+                Debug.LogError("PhotonNetwork : Trying to Load a level but we are not the master Client");
+                return;
+            }
+            Debug.LogFormat("PhotonNetwork : Loading Level : {0}", NetworkHelper.Instance.CurrentRoom.PlayerCount);
+            NetworkHelper.Instance.LoadLevel("Room for " + NetworkHelper.Instance.CurrentRoom.PlayerCount);
+        }
+
+
+        #endregion
 
         /// <summary>
         /// Called when the local player left the room. We need to load the launcher scene.

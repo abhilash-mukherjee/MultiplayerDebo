@@ -6,12 +6,13 @@ namespace PhotonDemoProject.GameLogic
 {
     public class PlayerController : MonoBehaviour
     {
+        [SerializeField] Transform playerParent;
         [SerializeField] float moveSpeed = 100f;
         private void Update()
         {
             var delX = Input.GetAxis("Horizontal");
             var delZ = Input.GetAxis("Vertical");
-            transform.position += new Vector3(delX, 0, delZ);
+            playerParent.position += new Vector3(delX, 0, delZ);
         }
     }
 
