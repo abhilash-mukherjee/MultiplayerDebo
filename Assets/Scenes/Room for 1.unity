@@ -833,5 +833,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 7389984009568448169, guid: 6331d6e36cc9dd54db49d4aef5c2336f, type: 3}
+      propertyPath: sailorPrefab
+      value: 
+      objectReference: {fileID: 845006259813663148, guid: 7b8e558bee8559e4a9c129adb3f8ec7c, type: 3}
+    m_RemovedComponents:
+    - {fileID: 7389984009568448166, guid: 6331d6e36cc9dd54db49d4aef5c2336f, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 6331d6e36cc9dd54db49d4aef5c2336f, type: 3}

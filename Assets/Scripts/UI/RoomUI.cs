@@ -6,11 +6,11 @@ namespace PhotonDemoProject.UI
 {
     public class RoomUI : MonoBehaviour
     {
-
+        public delegate void RoomLeaveHandler();
+        public static event RoomLeaveHandler OnRoomLeft;
         public void QuitRoom()
         {
-            Debug.Log("Quit Room clicked");
-            PhotonNetworking.NetworkHelper.Instance.LeaveRoom();
+            OnRoomLeft?.Invoke();
         }
     }
 }

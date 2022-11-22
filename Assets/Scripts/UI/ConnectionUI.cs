@@ -13,21 +13,21 @@ namespace PhotonDemoProject.UI
         private GameObject progressLabel;
         private void Start()
         {
-            progressLabel.SetActive(false);
-            controlPanel.SetActive(true);
+            progressLabel.SetActive(true);
+            controlPanel.SetActive(false);
 
         }
 
         private void OnEnable()
         {
-            PhotonNetworking.Launcher.OnConnectionLost += OnDisconnected;
+            PhotonNetworking.Launcher.OnLobbyJoined += OnLobbyJoined;
         }
         private void OnDisable()
         {
-            PhotonNetworking.Launcher.OnConnectionLost -= OnDisconnected;
+            PhotonNetworking.Launcher.OnLobbyJoined -= OnLobbyJoined;
         }
 
-        private void OnDisconnected()
+        private void OnLobbyJoined()
         {
             progressLabel.SetActive(false);
             controlPanel.SetActive(true);

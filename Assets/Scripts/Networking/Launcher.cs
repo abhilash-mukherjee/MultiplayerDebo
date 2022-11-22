@@ -1,8 +1,10 @@
 using Photon.Pun;
 using Photon.Realtime;
 using PhotonDemoProject.Data;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace PhotonNetworking
@@ -10,7 +12,7 @@ namespace PhotonNetworking
     public class Launcher : MonoBehaviourPunCallbacks
     {
         public delegate void ConnectionHandler();
-        public static event ConnectionHandler OnConnectionLost;
+        public static event ConnectionHandler OnConnectionLost, OnLobbyJoined;
 
         #region Private Serializable Fields
         /// <summary>
@@ -32,7 +34,8 @@ namespace PhotonNetworking
         bool isConnecting;
         private const string OPERATOR_EXIST = "OE";
         private const string SAILOR_EXISTS = "PE";
-        private bool masterConnected = false;
+        private const string MAP_TYPE = "MAP_TYPE";
+        private bool isMasterConnected = false;
 
 
         #endregion
@@ -49,19 +52,26 @@ namespace PhotonNetworking
             // #Critical
             // this makes sure we can use PhotonNetwork.LoadLevel() on the master client and all clients in the same room sync their level automatically
             PhotonNetwork.AutomaticallySyncScene = true;
+            if (!PhotonNetwork.IsConnected)
+            {
+                isConnecting = PhotonNetwork.ConnectUsingSettings();
+                PhotonNetwork.GameVersion = gameVersion;
+            }
         }
 
         public override void OnEnable()
         {
             base.OnEnable();
-            RoomManager.OnClientLeftRoom += () => masterConnected = false;
+            PhotonDemoProject.UI.RoomUI.OnRoomLeft += LeaveRoom;
         }
         public override void OnDisable()
         {
             base.OnDisable();
-            RoomManager.OnClientLeftRoom -= () => masterConnected = false;
+            PhotonDemoProject.UI.RoomUI.OnRoomLeft -= LeaveRoom;
 
         }
+
+       
         #endregion
 
 
@@ -69,14 +79,13 @@ namespace PhotonNetworking
 
         public void Connect()
         {
-            if (PhotonNetwork.IsConnected)
+            if (PhotonNetwork.IsConnected && !isConnecting)
             {
                 JoinRandomRoom();
             }
             else
             {
-                isConnecting = PhotonNetwork.ConnectUsingSettings();
-                PhotonNetwork.GameVersion = gameVersion;
+                Debug.Log("Photon network is connecting ... Please wait");
             }
         }
 
@@ -89,19 +98,21 @@ namespace PhotonNetworking
 
         public override void OnConnectedToMaster()
         {
-            masterConnected = true;
-            if (isConnecting)
-            {
-                JoinRandomRoom();
-                isConnecting = false;
-            }
+            isMasterConnected = true;
+            Debug.Log("Master is connected");
+            joinLobby();
 
+        }
+
+        private void joinLobby()
+        {
+            PhotonNetwork.JoinLobby();
         }
 
 
         public override void OnDisconnected(DisconnectCause cause)
         {
-            masterConnected = false;
+            isMasterConnected = false;
             Debug.LogWarningFormat("PUN Basics Tutorial/Launcher: OnDisconnected() was called by PUN with reason {0}", cause);
             OnConnectionLost?.Invoke();
 
@@ -109,46 +120,67 @@ namespace PhotonNetworking
 
         public override void OnJoinRandomFailed(short returnCode, string message)
         {
+            Debug.Log("Room failed " + message);
             Debug.Log("PUN Basics Tutorial/Launcher:OnJoinRandomFailed() was called by PUN. No random room available, so we create one.\nCalling: PhotonNetwork.CreateRoom");
             CreateRoom();
         }
 
         public override void OnJoinedRoom()
         {
-            Debug.Log("PUN Basics Tutorial/Launcher: OnJoinedRoom() called by PUN. Now this client is in a room.");
-            if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
-            {
-                Debug.Log("We load the 'Room for 1' ");
-                PhotonNetwork.LoadLevel("Room for 1");
-            } 
+            bool isOperatorView = ClientSideData.Instance.View == Operator;
+            ExitGames.Client.Photon.Hashtable playerProperties = new ExitGames.Client.Photon.Hashtable() { { "CurrentView", (isOperatorView ? "OPERATOR" : "SAILOR") } };
+            PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+            PhotonNetwork.LoadLevel("Room for 1");
+
         }
+
+        public override void OnLeftRoom()
+        {
+                SceneManager.LoadScene(0);
+
+        }
+       
+
+        public override void OnJoinedLobby()
+        {
+            Debug.Log("Lobby Joined");
+            isConnecting = false;
+            OnLobbyJoined?.Invoke();
+        }
+
+
 
         #endregion
 
         #region Private Methods
         private void CreateRoom()
         {
-            if (!masterConnected) return;
             RoomOptions roomOptions = new RoomOptions();
-            string[] keys = { OPERATOR_EXIST, SAILOR_EXISTS};
+            string[] keys = { MAP_TYPE };
             roomOptions.CustomRoomPropertiesForLobby = keys;
             bool isOperatorView = ClientSideData.Instance.View == Operator;
-            bool isSailorView = !isOperatorView;
-            roomOptions.CustomRoomProperties = new Hashtable { {maxPlayersPerRoom, maxPlayersPerRoom},{ OPERATOR_EXIST, isOperatorView }, 
-                { SAILOR_EXISTS, isSailorView } };
-            PhotonNetwork.CreateRoom(null, roomOptions, null);
+            roomOptions.CustomRoomProperties = new Hashtable { { MAP_TYPE, isOperatorView ? "OPERATOR" : "SAILOR" } };
+            Debug.Log("Creating room for " + (isOperatorView ? "OPERATOR" : "SAILOR"));
+            PhotonNetwork.CreateRoom(null,roomOptions);
         }
 
         private void JoinRandomRoom()
         {
             bool isOperatorView = ClientSideData.Instance.View == Operator;
             Debug.Log("Is operator view = " + isOperatorView);
-            Hashtable expectedCustomRoomProperties = new Hashtable { { OPERATOR_EXIST, !isOperatorView }, { SAILOR_EXISTS, isOperatorView } };
-            PhotonNetwork.JoinRandomRoom(expectedCustomRoomProperties, maxPlayersPerRoom);
+            Hashtable expectedCustomRoomProperties = new Hashtable { { MAP_TYPE, isOperatorView ? "SAILOR" : "OPERATOR" } };
+            Debug.Log("Checking room for " + (isOperatorView ? "SAILOR" : "OPERATOR"));
+            PhotonNetwork.JoinRandomRoom(expectedCustomRoomProperties, 0);
+        }
+        private void LeaveRoom()
+        {
+            isMasterConnected = false;
+            PhotonNetwork.LeaveRoom();
         }
         #endregion
 
 
     }
+   
 
 }
